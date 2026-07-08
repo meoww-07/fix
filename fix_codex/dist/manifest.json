@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "VerdictIQ",
+  "name": "upSol",
   "description": "Logic-first Codeforces Wrong Answer debugging assistant.",
   "version": "0.1.0",
   "action": {
-    "default_title": "VerdictIQ",
+    "default_title": "upSol",
     "default_popup": "index.html"
   },
   "background": {

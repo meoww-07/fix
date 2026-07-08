@@ -15,6 +15,13 @@ type AcceptedMeta = {
   language: string;
   sourceUrl: string;
 };
+type ProblemPageContext = {
+  contestId: string;
+  problemIndex: string;
+  problemUrl: string;
+  viewerHandle: string;
+  problemStatement: ProblemStatement;
+};
 
 function cleanText(value: string) {
   return value.replace(/\u00a0/g, " ").replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -28,6 +35,41 @@ function languageFromRow(row: Element | null) {
   );
 }
 
+function extractProblemRef() {
+  const urlMatch =
+    window.location.href.match(/\/(?:contest|problemset)\/(\d+)\/problem\/([A-Z0-9]+)/i) ??
+    window.location.href.match(/\/problemset\/problem\/(\d+)\/([A-Z0-9]+)/i);
+  const problemLink = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href*='/problem/']")).find((link) =>
+    /\/(?:contest|problemset)\/\d+\/problem\/[A-Z0-9]+/i.test(link.href)
+  );
+  const linkMatch = problemLink?.href.match(/\/(?:contest|problemset|problemset\/problem)\/(\d+)\/(?:problem\/)?([A-Z0-9]+)/i);
+  const contestId = urlMatch?.[1] ?? linkMatch?.[1] ?? "";
+  const problemIndex = urlMatch?.[2] ?? linkMatch?.[2] ?? "";
+
+  return {
+    contestId,
+    problemIndex,
+    problemUrl: contestId && problemIndex ? `https://codeforces.com/problemset/problem/${contestId}/${problemIndex}` : "",
+  };
+}
+
+function viewerHandleFromHeader() {
+  const selectors = [
+    "#header a[href^='/profile/']",
+    ".lang-chooser a[href^='/profile/']",
+    ".userbox a[href^='/profile/']",
+    "a[href^='/profile/']",
+  ];
+
+  for (const selector of selectors) {
+    const link = document.querySelector<HTMLAnchorElement>(selector);
+    const handle = link?.getAttribute("href")?.match(/\/profile\/([^/?#]+)/)?.[1] ?? link?.textContent?.trim();
+    if (handle && !/enter|register|login/i.test(handle)) return decodeURIComponent(handle);
+  }
+
+  return "";
+}
+
 function detectWrongAnswerPage(): DetectionResult {
   const url = window.location.href;
   const text = document.body.innerText;
@@ -38,6 +80,21 @@ function detectWrongAnswerPage(): DetectionResult {
   if (!document.querySelector("#program-source-text")) return { ok: false, reason: "Could not find submitted source code." };
 
   return { ok: true, reason: "Wrong Answer submission detected." };
+}
+
+function detectAnalyzablePage(): DetectionResult & { pageType?: "submission" | "problem" } {
+  const wrongAnswer = detectWrongAnswerPage();
+  if (wrongAnswer.ok) return { ...wrongAnswer, pageType: "submission" };
+
+  const problem = extractProblemRef();
+  if (location.hostname.includes("codeforces.com") && problem.contestId && problem.problemIndex) {
+    return { ok: true, reason: "Codeforces problem page detected.", pageType: "problem" };
+  }
+
+  return {
+    ok: false,
+    reason: "Open a Codeforces problem page or a Wrong Answer submission page.",
+  };
 }
 
 function scrapeFailedCode(): FailedSubmission {
@@ -137,6 +194,16 @@ function scrapeProblemStatementFromPage(): ProblemStatement {
   };
 }
 
+function scrapeProblemPageContext(): ProblemPageContext {
+  const problem = extractProblemRef();
+
+  return {
+    ...problem,
+    viewerHandle: viewerHandleFromHeader(),
+    problemStatement: scrapeProblemStatementFromPage(),
+  };
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   const request = message as { type?: string; limit?: number };
 
@@ -150,8 +217,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
 
+  if (request.type === "DETECT_ANALYZABLE_PAGE") {
+    sendResponse(detectAnalyzablePage());
+    return;
+  }
+
   if (request.type === "SCRAPE_FAILED_CODE") {
     sendResponse(scrapeFailedCode());
+    return;
+  }
+
+  if (request.type === "SCRAPE_PROBLEM_PAGE_CONTEXT") {
+    sendResponse(scrapeProblemPageContext());
     return;
   }
 

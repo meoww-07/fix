@@ -32,20 +32,17 @@ const defaultSettings: AISettings = {
 };
 
 const pipelineSteps = [
-  "Step 1: checks the current page is a Codeforces Wrong Answer submission.",
-  "Step 2: content script scrapes failed code, language, verdict, contest ID, problem index, and URL.",
-  "Step 3: background fetches or opens the problem statement page and cleans it.",
-  "Step 4: background first reads already-open accepted submission tabs, then falls back to status/source pages.",
-  "Step 5: extracts the failed code's logic fingerprint.",
-  "Step 6: extracts the failed code's style fingerprint.",
-  "Step 7: filters candidates by logical similarity.",
-  "Step 8: ranks candidates using 60% logic, 25% token overlap, and 15% style.",
-  "Step 9: selects the top 3 logically closest accepted submissions.",
-  "Step 10: sends the failed code, problem statement, and top 3 matches to the selected AI provider.",
-  "Step 11: displays failed code, matched accepted code, and explanation.",
+  "Detects the current Codeforces problem or Wrong Answer submission.",
+  "Finds your newest Wrong Answer from the problem page when needed.",
+  "Collects the problem statement and readable accepted submissions.",
+  "Ranks accepted code by logic, token overlap, and style.",
+  "Builds a focused fix explanation.",
 ];
 
-const ANALYSIS_STATE_KEY = "verdictiq.latestAnalysis";
+const ANALYSIS_STATE_KEY = "upsol.latestAnalysis";
+const hasChromeRuntime = () => typeof chrome !== "undefined" && Boolean(chrome.runtime?.sendMessage);
+const hasChromeStorage = () => typeof chrome !== "undefined" && Boolean(chrome.storage?.local);
+
 type StoredAnalysisState = {
   status: "idle" | "running" | "complete" | "error";
   result?: AnalysisResult;
@@ -56,11 +53,13 @@ type StoredAnalysisState = {
 export function App() {
   const [settings, setSettings] = useState<AISettings>(defaultSettings);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [steps, setSteps] = useState<string[]>(["Open a Codeforces Wrong Answer submission, then click Analyze."]);
+  const [steps, setSteps] = useState<string[]>(["Open a Codeforces problem page or Wrong Answer submission, then analyze."]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!hasChromeStorage()) return;
+
     chrome.storage.local
       .get<Record<string, StoredAnalysisState | undefined>>(ANALYSIS_STATE_KEY)
       .then((stored) => {
@@ -101,9 +100,13 @@ export function App() {
     setIsLoading(true);
     setError("");
     setResult(null);
-    setSteps(["Running PDF pipeline in background service worker..."]);
+    setSteps(["Looking for your latest wrong submission and nearby accepted logic..."]);
 
     try {
+      if (!hasChromeRuntime()) {
+        throw new Error("upSol needs to run as the installed Chrome extension to read the current Codeforces tab.");
+      }
+
       const response = await chrome.runtime.sendMessage<{ ok: boolean; result?: AnalysisResult; error?: string }>({
         type: "ANALYZE_CURRENT_TAB",
         settings,
@@ -126,19 +129,39 @@ export function App() {
     <main className="app-shell">
       <section className="hero">
         <div className="brand-mark">
-          <Brain size={25} aria-hidden="true" />
+          <Code2 size={24} aria-hidden="true" />
         </div>
         <div>
-          <p className="eyebrow">VerdictIQ</p>
-          <h1>Logic-first WA debugger</h1>
-          <p>Scrape the failed submission, rank accepted C++ code, then explain the break.</p>
+          <p className="eyebrow">Wrong-answer repair desk</p>
+          <h1>upSol</h1>
+          <p>Start from a problem page. upSol finds your latest WA, compares accepted logic, and explains the fix.</p>
+        </div>
+      </section>
+
+      <button className="analyze-button" type="button" onClick={analyzeCurrentPage} disabled={isLoading}>
+        {isLoading ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
+        Analyze page
+      </button>
+
+      {error && (
+        <section className="notice warning">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <span>{error}</span>
+        </section>
+      )}
+
+      <section className={`status-card ${status.tone}`}>
+        {status.tone === "success" ? <CheckCircle2 size={19} aria-hidden="true" /> : <Route size={19} aria-hidden="true" />}
+        <div>
+          <strong>{status.label}</strong>
+          <span>{steps[steps.length - 1] ?? "Ready"}</span>
         </div>
       </section>
 
       <section className="notice neutral">
         <span>
-          If Codeforces bot verification blocks scraping, open 1-3 accepted submission source pages in separate tabs first.
-          VerdictIQ will read those open tabs as the top-candidate pool.
+          If Codeforces blocks source scraping, open 1-3 accepted submission source pages in tabs first. upSol will use
+          those as candidates.
         </span>
       </section>
 
@@ -251,26 +274,6 @@ export function App() {
             </p>
           </>
         )}
-      </section>
-
-      <button className="analyze-button" type="button" onClick={analyzeCurrentPage} disabled={isLoading}>
-        {isLoading ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
-        Analyze Current Page
-      </button>
-
-      {error && (
-        <section className="notice warning">
-          <AlertTriangle size={18} aria-hidden="true" />
-          <span>{error}</span>
-        </section>
-      )}
-
-      <section className={`status-card ${status.tone}`}>
-        {status.tone === "success" ? <CheckCircle2 size={19} aria-hidden="true" /> : <Route size={19} aria-hidden="true" />}
-        <div>
-          <strong>{status.label}</strong>
-          <span>{steps[steps.length - 1] ?? "Ready"}</span>
-        </div>
       </section>
 
       <section className="panel">

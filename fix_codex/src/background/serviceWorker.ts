@@ -10,17 +10,25 @@ import type {
   ProblemStatement,
 } from "../lib/types";
 
-type DetectionResult = { ok: boolean; reason: string };
+type DetectionResult = { ok: boolean; reason: string; pageType?: "submission" | "problem" };
 type AcceptedMeta = {
   submissionId: string;
   userHandle: string;
   language: string;
   sourceUrl: string;
 };
+type ProblemPageContext = {
+  contestId: string;
+  problemIndex: string;
+  problemUrl: string;
+  viewerHandle: string;
+  problemStatement: ProblemStatement;
+};
 type CodeforcesStatusApiResponse = {
   status: string;
   result?: Array<{
     id: number;
+    creationTimeSeconds?: number;
     programmingLanguage?: string;
     verdict?: string;
     author?: {
@@ -53,7 +61,7 @@ type StoredAnalysisState = {
   updatedAt: number;
 };
 
-const ANALYSIS_STATE_KEY = "verdictiq.latestAnalysis";
+const ANALYSIS_STATE_KEY = "upsol.latestAnalysis";
 
 function languageFamily(language: string) {
   const value = language.toLowerCase();
@@ -301,20 +309,86 @@ async function getAcceptedSourcesFromOpenTabs(failed: FailedSubmission) {
   return sources;
 }
 
+function normalizeVerdict(verdict?: string) {
+  if (!verdict) return "";
+  return verdict.replace(/_/g, " ").toLowerCase();
+}
+
+async function getLatestWrongSubmissionFromProblemPage(context: ProblemPageContext): Promise<FailedSubmission> {
+  if (!context.viewerHandle) {
+    throw new Error(
+      "This problem page was detected, but upSol could not find your Codeforces handle. Sign in to Codeforces, then try again from the problem page."
+    );
+  }
+
+  const apiUrl = `https://codeforces.com/api/user.status?handle=${encodeURIComponent(context.viewerHandle)}&from=1&count=500`;
+  const data = await fetch(apiUrl).then(async (response) => {
+    if (!response.ok) throw new Error(`Codeforces user status failed: ${response.status}`);
+    return (await response.json()) as CodeforcesStatusApiResponse;
+  });
+
+  if (data.status !== "OK" || !data.result) {
+    throw new Error(data.comment ?? "Codeforces did not return your recent submissions.");
+  }
+
+  const latestWrong = data.result
+    .filter((submission) => {
+      const problemMatches =
+        String(submission.problem?.contestId ?? "") === context.contestId &&
+        submission.problem?.index?.toUpperCase() === context.problemIndex.toUpperCase();
+      return problemMatches && normalizeVerdict(submission.verdict).includes("wrong answer");
+    })
+    .sort((a, b) => (b.creationTimeSeconds ?? 0) - (a.creationTimeSeconds ?? 0))[0];
+
+  if (!latestWrong) {
+    throw new Error(
+      `No recent Wrong Answer submission was found for ${context.contestId}${context.problemIndex} under ${context.viewerHandle}.`
+    );
+  }
+
+  const sourceUrl = `https://codeforces.com/contest/${context.contestId}/submission/${latestWrong.id}`;
+  const raw = await scrapeTemporaryTab<RawAcceptedSource>(sourceUrl, { type: "SCRAPE_SUBMISSION_SOURCE" });
+
+  if (!raw.code) {
+    throw new Error(`Found submission ${latestWrong.id}, but Codeforces did not expose its source code in this session.`);
+  }
+
+  return {
+    url: sourceUrl,
+    contestId: context.contestId,
+    problemIndex: context.problemIndex,
+    submissionId: String(latestWrong.id),
+    verdict: latestWrong.verdict ? latestWrong.verdict.replace(/_/g, " ") : "Wrong answer",
+    language: latestWrong.programmingLanguage ?? raw.language ?? "Unknown language",
+    code: raw.code,
+  };
+}
+
 async function analyzeCurrentTab(settings: AISettings): Promise<AnalysisResult> {
   await saveAnalysisState({ status: "running" });
   const tabId = await queryActiveTab();
 
-  const detection = await sendToTab<DetectionResult>(tabId, { type: "DETECT_WRONG_ANSWER_PAGE" });
+  const detection = await sendToTab<DetectionResult>(tabId, { type: "DETECT_ANALYZABLE_PAGE" });
   if (!detection.ok) throw new Error(detection.reason);
 
-  const failedSubmission = await sendToTab<FailedSubmission>(tabId, { type: "SCRAPE_FAILED_CODE" });
+  const problemContext =
+    detection.pageType === "problem"
+      ? await sendToTab<ProblemPageContext>(tabId, { type: "SCRAPE_PROBLEM_PAGE_CONTEXT" })
+      : null;
+  const failedSubmission =
+    detection.pageType === "problem" && problemContext
+      ? await getLatestWrongSubmissionFromProblemPage(problemContext)
+      : await sendToTab<FailedSubmission>(tabId, { type: "SCRAPE_FAILED_CODE" });
+
   if (!failedSubmission.code) throw new Error("Failed source code was not found on the page.");
   if (!failedSubmission.contestId || !failedSubmission.problemIndex) {
     throw new Error("Could not detect contest ID or problem index from this submission.");
   }
 
-  const problemStatement = await getProblemStatement(failedSubmission);
+  const problemStatement =
+    problemContext?.problemStatement?.rawText || problemContext?.problemStatement?.statement
+      ? problemContext.problemStatement
+      : await getProblemStatement(failedSubmission);
   let acceptedSubmissions: AcceptedSubmission[] = [];
   try {
     acceptedSubmissions = await getAcceptedSources(failedSubmission);

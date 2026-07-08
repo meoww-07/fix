@@ -1,6 +1,6 @@
 :root {
-  color: #172033;
-  background: #f5f7fb;
+  color: #242424;
+  background: #eeeee9;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -14,41 +14,55 @@
 }
 
 body {
-  width: 420px;
-  min-height: 600px;
+  width: 430px;
+  min-height: 620px;
   margin: 0;
-  background: #f5f7fb;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(238, 238, 233, 0.88)),
+    #eeeee9;
 }
 
-button {
+button,
+input,
+select {
   font: inherit;
 }
 
 input,
 select {
   width: 100%;
-  min-height: 36px;
-  border: 1px solid #cfd7e5;
-  border-radius: 7px;
-  padding: 0 9px;
-  color: #172033;
-  background: #fbfcff;
-  font: inherit;
+  min-height: 39px;
+  border: 1px solid #d8d8d2;
+  border-radius: 8px;
+  padding: 0 11px;
+  color: #242424;
+  background: #fbfbf8;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #242424;
+  box-shadow: 0 0 0 3px rgba(199, 247, 62, 0.35);
 }
 
 .app-shell {
   display: flex;
-  min-height: 600px;
+  min-height: 620px;
   flex-direction: column;
-  gap: 13px;
+  gap: 12px;
   padding: 16px;
 }
 
 .hero {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 13px;
   align-items: center;
+  padding: 14px;
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: rgba(255, 255, 252, 0.86);
 }
 
 .brand-mark {
@@ -56,49 +70,56 @@ select {
   width: 48px;
   height: 48px;
   place-items: center;
-  border-radius: 8px;
-  color: #ffffff;
-  background: #d43f35;
+  border: 1.5px solid #242424;
+  border-radius: 50%;
+  color: #242424;
+  background: #fdfdfa;
 }
 
 .eyebrow {
-  margin: 0 0 3px;
-  color: #d43f35;
-  font-size: 12px;
+  margin: 0 0 4px;
+  color: #6b6b63;
+  font-size: 13px;
   font-weight: 800;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 h1 {
   margin: 0;
-  font-size: 21px;
-  line-height: 1.15;
+  color: #242424;
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: 0;
 }
 
 p {
-  margin: 4px 0 0;
-  color: #5d687a;
+  margin: 5px 0 0;
+  color: #6e6e68;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.42;
 }
 
 .analyze-button {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 46px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #d43f35;
+  border: 1px solid #242424;
   border-radius: 8px;
-  color: #ffffff;
-  background: #d43f35;
+  color: #fdfdfa;
+  background: #242424;
   cursor: pointer;
   font-weight: 800;
 }
 
+.analyze-button:hover {
+  background: #111111;
+}
+
 .analyze-button:disabled {
   cursor: wait;
-  opacity: 0.72;
+  opacity: 0.76;
 }
 
 .spin {
@@ -114,9 +135,9 @@ p {
 .notice,
 .status-card,
 .panel {
-  border: 1px solid #d9dee8;
+  border: 1px solid #deded8;
   border-radius: 8px;
-  background: #ffffff;
+  background: rgba(255, 255, 252, 0.9);
 }
 
 .notice,
@@ -126,24 +147,29 @@ p {
   gap: 10px;
   align-items: start;
   padding: 12px;
+  color: #4d4d48;
   font-size: 13px;
 }
 
 .notice.warning,
 .status-card.warning {
-  border-color: #f0c46c;
-  color: #6e4c04;
-  background: #fff9eb;
+  border-color: #242424;
+  color: #2f2510;
+  background: #fff8df;
 }
 
 .status-card.success {
-  border-color: #9fd2b5;
-  color: #155c34;
-  background: #f0fbf4;
+  border-color: #242424;
+  color: #242424;
+  background: #fdfdfa;
+}
+
+.status-card.success svg {
+  color: #87b500;
 }
 
 .status-card.neutral {
-  color: #42506a;
+  color: #55554f;
 }
 
 .status-card strong,
@@ -151,67 +177,75 @@ p {
   display: block;
 }
 
+.status-card strong {
+  font-size: 14px;
+}
+
 .status-card span {
   margin-top: 3px;
-  color: #637086;
+  color: #73736b;
   overflow-wrap: anywhere;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 11px;
+  padding: 13px;
 }
 
 .notice.neutral {
-  color: #44516a;
-  background: #ffffff;
+  background: rgba(255, 255, 252, 0.82);
 }
 
 .settings-panel label {
   display: grid;
   gap: 6px;
-  color: #44516a;
+  color: #5d5d56;
   font-size: 12px;
   font-weight: 800;
 }
 
 .panel-title {
   display: flex;
-  gap: 7px;
+  gap: 8px;
   align-items: center;
-  color: #202b3f;
+  color: #242424;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 850;
+}
+
+.panel-title svg {
+  color: #242424;
 }
 
 .facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 9px;
+  gap: 8px;
   margin: 0;
 }
 
 .facts div {
   min-width: 0;
-  padding: 9px;
-  border-radius: 7px;
-  background: #f7f9fc;
+  padding: 10px;
+  border: 1px solid #e6e6df;
+  border-radius: 8px;
+  background: #f7f7f2;
 }
 
 .facts dt {
-  color: #667287;
+  color: #85857c;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
   text-transform: uppercase;
 }
 
 .facts dd {
-  margin: 3px 0 0;
-  color: #182033;
+  margin: 4px 0 0;
+  color: #242424;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
@@ -221,9 +255,9 @@ p {
 }
 
 .tag-label {
-  color: #657084;
+  color: #77776f;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .tags {
@@ -233,53 +267,58 @@ p {
 }
 
 .tags span {
-  padding: 5px 8px;
-  border: 1px solid #d6ddea;
-  border-radius: 999px;
-  color: #263249;
-  background: #f7f9fc;
+  padding: 6px 9px;
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  color: #242424;
+  background: #f7f7f2;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 760;
 }
 
 .hint {
   padding-top: 2px;
-  color: #44516a;
+  color: #66665f;
   font-weight: 700;
 }
 
 .step-list {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
-  padding-left: 18px;
-  color: #44516a;
+  padding-left: 19px;
+  color: #55554f;
   font-size: 12px;
   line-height: 1.35;
 }
 
+.step-list li::marker {
+  color: #242424;
+  font-weight: 900;
+}
+
 .matches {
   display: grid;
-  gap: 9px;
+  gap: 10px;
 }
 
 .match-card {
   display: grid;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid #d8dfeb;
-  border-radius: 7px;
-  background: #fbfcff;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid #242424;
+  border-radius: 8px;
+  background: #fdfdfa;
 }
 
 .match-card strong,
 .match-card span {
-  color: #172033;
+  color: #242424;
   font-size: 13px;
 }
 
 .match-card > span {
-  color: #647086;
+  color: #73736b;
 }
 
 .score-grid {
@@ -291,13 +330,13 @@ p {
 .logic-summary {
   display: grid;
   gap: 3px;
-  padding: 9px;
-  border-radius: 7px;
-  background: #f7f9fc;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f3f3ee;
 }
 
 .logic-summary strong {
-  color: #202b3f;
+  color: #242424;
   font-size: 12px;
 }
 
@@ -308,15 +347,17 @@ p {
 .score-grid span {
   display: grid;
   gap: 2px;
-  padding: 6px;
-  border-radius: 6px;
-  background: #f0f3f8;
+  padding: 7px 5px;
+  border-radius: 8px;
+  color: #242424;
+  background: #c7f73e;
   text-align: center;
   font-size: 12px;
+  font-weight: 850;
 }
 
 .score-grid b {
-  color: #667287;
+  color: #446000;
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -328,35 +369,41 @@ p {
 
 .match-code summary {
   cursor: pointer;
-  color: #c43e34;
+  color: #242424;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
+}
+
+.match-code pre,
+.code-panel pre {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  color: #191919;
+  background: #fbfbf8;
+  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  line-height: 1.45;
+  white-space: pre;
 }
 
 .match-code pre {
   max-height: 210px;
-  margin: 0;
-  overflow: auto;
   padding: 9px;
-  border: 1px solid #d8dfeb;
-  border-radius: 7px;
-  color: #111827;
-  background: #ffffff;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   font-size: 11px;
-  line-height: 1.45;
 }
 
 .explain-block {
   display: grid;
-  gap: 3px;
-  padding: 9px;
-  border-radius: 7px;
-  background: #f7f9fc;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #e6e6df;
+  border-radius: 8px;
+  background: #f7f7f2;
 }
 
 .explain-block strong {
-  color: #202b3f;
+  color: #242424;
   font-size: 12px;
 }
 
@@ -366,15 +413,6 @@ p {
 
 .code-panel pre {
   max-height: 220px;
-  margin: 0;
-  overflow: auto;
   padding: 10px;
-  border: 1px solid #d8dfeb;
-  border-radius: 7px;
-  color: #111827;
-  background: #fbfcff;
-  font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   font-size: 12px;
-  line-height: 1.45;
-  white-space: pre;
 }
