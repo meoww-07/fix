@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # upSol
 
 upSol is a Chrome extension for debugging Codeforces wrong-answer submissions. Start from a Codeforces Wrong Answer submission page, click **Analyze page**, and upSol compares the failed code with nearby accepted submissions, then shows the failed code, closest accepted logic matches, and an optional AI explanation.
