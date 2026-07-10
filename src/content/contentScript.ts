@@ -100,7 +100,10 @@ function detectAnalyzablePage(): DetectionResult & { pageType?: "submission" | "
   if (wrongAnswer.ok) return { ...wrongAnswer, pageType: "submission" };
 
   const problem = extractProblemRef();
-  if (location.hostname.includes("codeforces.com") && problem.contestId && problem.problemIndex) {
+  const isProblemPage =
+    /\/(?:contest|problemset)\/\d+\/problem\/[A-Z0-9]+/i.test(location.pathname) ||
+    /\/problemset\/problem\/\d+\/[A-Z0-9]+/i.test(location.pathname);
+  if (location.hostname.includes("codeforces.com") && isProblemPage && problem.contestId && problem.problemIndex) {
     return { ok: true, reason: "Codeforces problem page detected.", pageType: "problem" };
   }
 

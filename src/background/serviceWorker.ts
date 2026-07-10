@@ -296,7 +296,10 @@ async function getAcceptedSourcesFromOpenTabs(failed: FailedSubmission) {
   for (const tab of tabs) {
     if (!tab.id || !tab.url) continue;
     if (failedSubmissionId && tab.url.includes(`/submission/${failedSubmissionId}`)) continue;
-    if (!tab.url.includes(`/contest/${failed.contestId}/submission/`)) continue;
+    const tabContestId =
+      tab.url.match(/\/contest\/(\d+)\/submission\/\d+/i)?.[1] ??
+      tab.url.match(/\/problemset\/submission\/(\d+)\/\d+/i)?.[1];
+    if (tabContestId !== failed.contestId) continue;
 
     try {
       const raw = await sendToTab<RawAcceptedSource>(tab.id, { type: "SCRAPE_SUBMISSION_SOURCE" });
@@ -431,6 +434,7 @@ async function analyzeCurrentTab(settings: AISettings): Promise<AnalysisResult> 
   const shouldExplain = canGenerateExplanation(settings);
   let explanation = null;
   let explanationSkipped = !shouldExplain;
+  let explanationError: string | undefined;
 
   if (shouldExplain) {
     try {
@@ -438,6 +442,7 @@ async function analyzeCurrentTab(settings: AISettings): Promise<AnalysisResult> 
     } catch (error) {
       console.warn(error);
       explanationSkipped = true;
+      explanationError = error instanceof Error ? error.message : "The AI provider could not generate an explanation.";
     }
   }
 
@@ -448,6 +453,7 @@ async function analyzeCurrentTab(settings: AISettings): Promise<AnalysisResult> 
     matchedSubmissions,
     explanation,
     explanationSkipped,
+    explanationError,
   };
 
   await saveAnalysisState({ status: "complete", result });
