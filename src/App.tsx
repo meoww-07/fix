@@ -43,6 +43,7 @@ const pipelineSteps = [
 ];
 
 const ANALYSIS_STATE_KEY = "upsol.latestAnalysis";
+const SETTINGS_KEY = "upsol.settings";
 const hasChromeRuntime = () => typeof chrome !== "undefined" && Boolean(chrome.runtime?.sendMessage);
 const hasChromeStorage = () => typeof chrome !== "undefined" && Boolean(chrome.storage?.local);
 
@@ -81,14 +82,21 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
-    if (!hasChromeStorage()) return;
+    if (!hasChromeStorage()) {
+      setSettingsLoaded(true);
+      return;
+    }
 
     chrome.storage.local
-      .get<Record<string, StoredAnalysisState | undefined>>(ANALYSIS_STATE_KEY)
+      .get<Record<string, StoredAnalysisState | AISettings | undefined>>([ANALYSIS_STATE_KEY, SETTINGS_KEY])
       .then((stored) => {
-        const state = stored[ANALYSIS_STATE_KEY];
+        const savedSettings = stored[SETTINGS_KEY] as AISettings | undefined;
+        if (savedSettings) setSettings({ ...defaultSettings, ...savedSettings });
+
+        const state = stored[ANALYSIS_STATE_KEY] as StoredAnalysisState | undefined;
         if (!state) return;
         if (state.status === "complete" && state.result) {
           setResult(state.result);
@@ -100,8 +108,14 @@ export function App() {
           setStatusMessage("Analysis stopped before the pipeline could finish.");
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setSettingsLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!settingsLoaded || !hasChromeStorage()) return;
+    chrome.storage.local.set({ [SETTINGS_KEY]: settings }).catch(() => undefined);
+  }, [settings, settingsLoaded]);
 
   const failedLogic = useMemo(
     () => (result?.failedSubmission.code ? extractLogicFingerprint(result.failedSubmission.code) : null),
@@ -420,7 +434,11 @@ export function App() {
           <SubmissionSummary failed={result.failedSubmission} />
           {result.explanationSkipped && (
             <section className="sm-note sm-note--plain">
-              <p className="sm-note-body">upSol fetched code and logic matches only. No AI explanation was generated.</p>
+              <p className="sm-note-body">
+                {result.explanationError
+                  ? `upSol fetched code and logic matches, but the AI explanation failed: ${result.explanationError}`
+                  : "upSol fetched code and logic matches only. No AI explanation was generated."}
+              </p>
             </section>
           )}
           <ExplanationView explanation={result.explanation} />

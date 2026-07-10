@@ -82,6 +82,7 @@ export type AnalysisResult = {
   matchedSubmissions: MatchedSubmission[];
   explanation: AIExplanation | null;
   explanationSkipped?: boolean;
+  explanationError?: string;
 };
 
 export type AISettings = {
